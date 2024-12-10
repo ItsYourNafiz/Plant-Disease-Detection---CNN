@@ -11,3 +11,8 @@ picture = st.camera_input("Take a picture", disabled=not enable)
 if picture:
     st.image(picture)
 
+st.button("Reset", type="primary")
+if st.button("Submit"):
+    st.write("Submit")
+else:
+    st.write("Failed to Submit")
