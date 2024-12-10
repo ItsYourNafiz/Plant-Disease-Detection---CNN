@@ -2,6 +2,7 @@ import streamlit as st
 import numpy as np
 from PIL import Image
 import requests
+!pip install tensorflow
 import tensorflow as tf
 from io import BytesIO
 from google_drive_downloader import GoogleDriveDownloader as gdd
