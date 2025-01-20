@@ -1,5 +1,9 @@
 After Create an Streamlit app save it to <appname>.py then use the code below.
 
+#Install localtunnel
 !npm install localtunnel
 
+#This will give you a IP address and a link.
 !streamlit run app.py &>/content/logs.txt & npx localtunnel --port 8501 & curl ipv4.icanhazip.com
+
+Copy the IP address and paste it to the following field given by the link, Boom !
