@@ -1,3 +1,5 @@
+%%writefile app.py
+
 from tensorflow.keras.models import load_model
 import streamlit as st
 from PIL import Image
