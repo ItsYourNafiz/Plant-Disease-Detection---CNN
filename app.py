@@ -1,91 +1,55 @@
+from tensorflow.keras.models import load_model
 import streamlit as st
-import numpy as np
 from PIL import Image
-import requests
-!pip install tensorflow
-import tensorflow as tf
-from io import BytesIO
-from google_drive_downloader import GoogleDriveDownloader as gdd
+import numpy as np
+from keras.preprocessing.image import img_to_array
+import cv2
 
-# Google Drive File IDs
-json_file_id = "1JjBG0rkLiiIjpPIIJVFemWJT9crSQ-4M"
-weights_file_id = "1k6Yjhfjrr53311iQf4iz4eWtfU_mjZHg"
-h5_file_id = "1qngkqm4LAwvcM_qbrgBfLMT0yOzcl7TD"
+# Load the trained model
+model = load_model('/content/drive/My Drive/Plant_images_pianalytix/plant_disease_model.h5')
 
-# File paths
-json_file_path = "model.json"
-weights_file_path = "model_weights.h5"
-h5_file_path = "model.h5"
+# Define class labels
+all_labels = ['Corn-Common_rust', 'Potato-Early_blight', 'Tomato-Bacterial_spot']
 
-# Download the files
-@st.cache_resource
-def download_model_files():
-    gdd.download_file_from_google_drive(file_id=json_file_id, dest_path=json_file_path, unzip=False)
-    gdd.download_file_from_google_drive(file_id=weights_file_id, dest_path=weights_file_path, unzip=False)
-    gdd.download_file_from_google_drive(file_id=h5_file_id, dest_path=h5_file_path, unzip=False)
-    return json_file_path, weights_file_path, h5_file_path
+st.title("🌿 Plant Disease Detection")
 
-# Load model
-@st.cache_resource
-def load_model(json_path, weights_path):
-    with open(json_path, 'r') as json_file:
-        model_json = json_file.read()
-    model = tf.keras.models.model_from_json(model_json)
-    model.load_weights(weights_path)
-    return model
+# Webcam option
+run_webcam = st.checkbox('Run Webcam')
 
-# Preprocessing function
-def preprocess_image(image):
-    image = image.resize((224, 224))  # Adjust size according to model input
-    image_array = tf.keras.utils.img_to_array(image)
-    image_array = np.expand_dims(image_array, axis=0)
-    image_array = image_array / 255.0  # Normalize the image
-    return image_array
+if run_webcam:
+    img_file_buffer = st.camera_input("Take a picture")
 
-# Main application
-st.title(":herb: Plant Disease Detection")
+    if img_file_buffer is not None:
+        # To read image file buffer as a PIL Image:
+        img = Image.open(img_file_buffer)
+        img = img.resize((256, 256))  # Resize image
+        st.image(img, caption='Webcam Image.', use_column_width=True)
+        image_array = img_to_array(img) / 255.0
+        image_array = np.expand_dims(image_array, axis=0)
+        prediction = model.predict(image_array)
+        predicted_class_index = np.argmax(prediction)
+        predicted_class = all_labels[predicted_class_index]
+        confidence = prediction[0][predicted_class_index]
+        st.write(f"Prediction: {predicted_class}")
+        st.write(f"Confidence: {confidence:.2f}")
 
-st.write("Upload an image of a plant leaf to detect potential diseases.")
-
-# Download and load model
-st.write("Loading model...")
-json_path, weights_path, h5_path = download_model_files()
-model = load_model(json_path, weights_path)
-st.write("Model loaded successfully!")
-
-# File uploader
-uploaded_file = st.file_uploader("Choose an image file", type=["jpg", "jpeg", "png"])
+# Upload image option
+uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
-    # Display the uploaded image
     image = Image.open(uploaded_file)
-    st.image(image, caption="Uploaded Image", use_column_width=True)
+    st.image(image, caption='Uploaded Image.', use_container_width=True)
 
     # Preprocess the image
-    st.write("Processing image...")
-    processed_image = preprocess_image(image)
+    image = image.resize((256, 256))
+    image_array = img_to_array(image) / 255.0
+    image_array = np.expand_dims(image_array, axis=0)
 
     # Make prediction
-    st.write("Making prediction...")
-    predictions = model.predict(processed_image)
-    predicted_class = np.argmax(predictions, axis=1)[0]
+    prediction = model.predict(image_array)
+    predicted_class_index = np.argmax(prediction)
+    predicted_class = all_labels[predicted_class_index]
+    confidence = prediction[0][predicted_class_index]
 
-    # Map predictions to classes (update according to your model)
-    class_labels = {
-        0: "Healthy",
-        1: "Bacterial Spot",
-        2: "Early Blight",
-        3: "Late Blight",
-        4: "Leaf Mold",
-        5: "Septoria Leaf Spot",
-        6: "Spider Mites",
-        7: "Target Spot",
-        8: "Yellow Leaf Curl Virus",
-        9: "Mosaic Virus",
-        10: "Gray Spot"
-    }
-
-    result = class_labels.get(predicted_class, "Unknown Disease")
-
-    # Display result
-    st.write(f"Prediction: {result}")
+    st.write(f"Prediction: {predicted_class}")
+    st.write(f"Confidence: {confidence:.2f}")
